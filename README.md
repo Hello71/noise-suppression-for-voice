@@ -81,6 +81,52 @@ Further reading:
 - Useful detailed info about PulseAudio logic [toadjaune/pulseaudio-config](https://github.com/toadjaune/pulseaudio-config).
 - The [thread](https://bugs.freedesktop.org/show_bug.cgi?id=101043) which helped me with how to post-process mic output and make it available to applications.
 
+#### ALSA
+
+For use with raw ALSA (not for PulseAudio or JACK users!), try this configuration:
+
+```
+pcm.!default {
+    type asym
+    playback.pcm cards.pcm.default
+    # denoise all audio output
+    #playback.pcm plugdenoisedstereo
+    capture.pcm plugdenoisedmono
+}
+pcm.denoisedmono {
+    type ladspa
+    slave.pcm cards.pcm.default
+    path ""
+    plugins [{
+        label noise_suppressor_mono
+        filename "/usr/lib/ladspa/librnnoise_ladspa.so"
+        input {
+            controls [ 50 ]
+        }
+    }]
+}
+pcm.denoisedmono {
+    type ladspa
+    slave.pcm cards.pcm.default
+    path ""
+    plugins [{
+        label noise_suppressor_stereo
+        filename "/usr/lib/ladspa/librnnoise_ladspa.so"
+        input {
+            controls [ 50 ]
+        }
+    }]
+}
+pcm.plugdenoisedmono {
+    type plug
+    slave.pcm denoisedmono
+}
+pcm.plugdenoisedstereo {
+    type plug
+    slave.pcm denoisedstereo
+}
+```
+
 ### MacOS
 
 You will need to compile library yourself following steps below.
